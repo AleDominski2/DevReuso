@@ -2,7 +2,7 @@ import LoginForm from "./pages/login/Login";
 import Home from "./pages/home/Home";
 
 function App() {
-  return <LoginForm />;
+  // return <LoginForm />;
   return <Home />;
 }
 
