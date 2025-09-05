@@ -1,6 +1,6 @@
 import { useState } from "react";
 import logo from "../../assets/logo.png";
-import "./Login.css";
+import styles from "./Login.module.css";
 
 export default function LoginForm() {
   const [form, setForm] = useState({ email: "", password: "" });
@@ -16,14 +16,14 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <img src={logo} alt="Logo do posto" className="login-logo" />
+    <div className={styles["login-container"]}>
+      <div className={styles["login-card"]}>
+        <img src={logo} alt="Logo do posto" className={styles["login-logo"]} />
         <h1>Bem-vindo(a)</h1>
         <p className="subtitle">Acesse sua conta para continuar</p>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
+        <form onSubmit={handleSubmit} className={styles["login-form"]}>
+          <div className={styles["form-group"]}>
             <label>Email</label>
             <input
               type="email"
@@ -35,7 +35,7 @@ export default function LoginForm() {
             />
           </div>
 
-          <div className="form-group">
+          <div className={styles["form-group"]}>
             <label>Senha</label>
             <input
               type="password"
@@ -47,12 +47,12 @@ export default function LoginForm() {
             />
           </div>
 
-          <button type="submit" className="login-button">
+          <button type="submit" className={styles["login-button"]}>
             Entrar
           </button>
         </form>
 
-        <a href="#" className="forgot-password">
+        <a href="#" className={styles["forgot-password"]}>
           Esqueceu sua senha?
         </a>
       </div>
