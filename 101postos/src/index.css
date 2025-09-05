@@ -1,0 +1,23 @@
+:root {
+  --primary-color: #fb2a2a; /* cor principal do posto (customizável) */
+  --secondary-color: #d80202;
+  --background-color: #f5f6fa;
+  --text-color: #333;
+  --border-radius: 12px;
+  --transition: 0.3s ease;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  background: var(--background-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
