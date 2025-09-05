@@ -20,7 +20,7 @@ export default function LoginForm() {
       <div className={styles["login-card"]}>
         <img src={logo} alt="Logo do posto" className={styles["login-logo"]} />
         <h1>Bem-vindo(a)</h1>
-        <p className="subtitle">Acesse sua conta para continuar</p>
+        <p className={styles["subtitle"]}>Acesse sua conta para continuar</p>
 
         <form onSubmit={handleSubmit} className={styles["login-form"]}>
           <div className={styles["form-group"]}>
