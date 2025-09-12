@@ -1,445 +1,239 @@
 /**
  * Interface Strategy para cálculo de estoque
- * Define o contrato para diferentes estratégias de controle de estoque
  */
 class EstoqueStrategy {
-  constructor() {
-    if (this.constructor === EstoqueStrategy) {
-      throw new Error("Interface não pode ser instanciada diretamente");
-    }
+  calcularEstoque(dados) {
+    throw new Error("Método deve ser implementado pelas classes filhas");
   }
-
-  /**
-   * Calcula o estoque disponível
-   * @abstract
-   */
-  calcularEstoqueDisponivel(dados) {
-    throw new Error("Método calcularEstoqueDisponivel deve ser implementado");
-  }
-
-  /**
-   * Verifica se há estoque suficiente
-   * @abstract
-   */
+  
   verificarDisponibilidade(dados, quantidade) {
-    throw new Error("Método verificarDisponibilidade deve ser implementado");
+    throw new Error("Método deve ser implementado pelas classes filhas");
   }
-
-  /**
-   * Atualiza o estoque após movimentação
-   * @abstract
-   */
-  atualizarEstoque(dados, quantidade, tipo) {
-    throw new Error("Método atualizarEstoque deve ser implementado");
-  }
-
-  /**
-   * Calcula o ponto de reposição
-   * @abstract
-   */
-  calcularPontoReposicao(dados) {
-    throw new Error("Método calcularPontoReposicao deve ser implementado");
-  }
-
-  /**
-   * Gera alertas de estoque
-   * @abstract
-   */
-  gerarAlertas(dados) {
-    throw new Error("Método gerarAlertas deve ser implementado");
+  
+  atualizarEstoque(dados, quantidade, operacao) {
+    throw new Error("Método deve ser implementado pelas classes filhas");
   }
 }
 
 /**
- * Estratégia concreta para controle de combustível por volume
+ * Estratégia para controle de combustível por volume (litros)
  */
 class EstoqueCombustivelStrategy extends EstoqueStrategy {
   
-  /**
-   * Calcula estoque de combustível em litros
-   */
-  calcularEstoqueDisponivel(dados) {
+  calcularEstoque(dados) {
     const { tanques } = dados;
     
-    if (!tanques || tanques.length === 0) {
-      return 0;
-    }
-
-    // Soma o volume de todos os tanques do mesmo combustível
     const volumeTotal = tanques.reduce((total, tanque) => {
-      return total + (tanque.volumeAtual || 0);
+      return total + tanque.volumeAtual;
     }, 0);
-
-    // Considera a margem de segurança (5% do volume fica inacessível)
-    const margemSeguranca = volumeTotal * 0.05;
-    const volumeUtil = volumeTotal - margemSeguranca;
-
-    return {
-      volumeTotal,
-      volumeUtil,
-      margemSeguranca,
-      unidade: 'LITROS',
-      tanques: tanques.map(t => ({
-        id: t.id,
-        capacidade: t.capacidadeTotal,
-        atual: t.volumeAtual,
-        percentual: (t.volumeAtual / t.capacidadeTotal * 100).toFixed(2)
-      }))
-    };
-  }
-
-  /**
-   * Verifica disponibilidade considerando múltiplos tanques
-   */
-  verificarDisponibilidade(dados, quantidadeSolicitada) {
-    const estoque = this.calcularEstoqueDisponivel(dados);
     
-    const disponivel = estoque.volumeUtil >= quantidadeSolicitada;
-    const tanqueSuficiente = this.identificarTanqueDisponivel(dados.tanques, quantidadeSolicitada);
-
+    // Considera margem de segurança de 5%
+    const margemSeguranca = volumeTotal * 0.05;
+    const volumeDisponivel = volumeTotal - margemSeguranca;
+    
     return {
-      disponivel,
-      volumeDisponivel: estoque.volumeUtil,
-      quantidadeSolicitada,
-      tanqueRecomendado: tanqueSuficiente,
-      necessitaDistribuicao: !tanqueSuficiente && disponivel,
-      mensagem: this.gerarMensagemDisponibilidade(disponivel, estoque.volumeUtil, quantidadeSolicitada)
+      total: volumeTotal,
+      disponivel: Math.max(0, volumeDisponivel),
+      unidade: 'L',
+      margemSeguranca: margemSeguranca
     };
   }
-
-  identificarTanqueDisponivel(tanques, quantidade) {
-    // Encontra o tanque com volume suficiente
-    return tanques.find(t => t.volumeAtual >= quantidade);
+  
+  verificarDisponibilidade(dados, quantidadeSolicitada) {
+    const estoque = this.calcularEstoque(dados);
+    return {
+      temEstoque: estoque.disponivel >= quantidadeSolicitada,
+      disponivel: estoque.disponivel,
+      solicitado: quantidadeSolicitada,
+      unidade: 'L'
+    };
   }
-
-  gerarMensagemDisponibilidade(disponivel, volumeDisponivel, solicitado) {
-    if (disponivel) {
-      return `Disponível: ${volumeDisponivel.toFixed(2)}L disponíveis para ${solicitado}L solicitados`;
-    }
-    return `Estoque insuficiente: apenas ${volumeDisponivel.toFixed(2)}L disponíveis para ${solicitado}L solicitados`;
-  }
-
-  /**
-   * Atualiza estoque de combustível
-   */
-  atualizarEstoque(dados, quantidade, tipo) {
+  
+  atualizarEstoque(dados, quantidade, operacao) {
     const { tanques } = dados;
     
-    if (tipo === 'ENTRADA') {
-      return this.processarEntrada(tanques, quantidade);
-    } else if (tipo === 'SAIDA') {
-      return this.processarSaida(tanques, quantidade);
-    }
-    
-    throw new Error(`Tipo de movimentação inválido: ${tipo}`);
-  }
-
-  processarEntrada(tanques, quantidade) {
-    // Distribui entrada nos tanques com mais espaço disponível
-    const tanquesOrdenados = [...tanques].sort((a, b) => {
-      const espacoA = a.capacidadeTotal - a.volumeAtual;
-      const espacoB = b.capacidadeTotal - b.volumeAtual;
-      return espacoB - espacoA;
-    });
-
-    let quantidadeRestante = quantidade;
-    const movimentacoes = [];
-
-    for (const tanque of tanquesOrdenados) {
-      if (quantidadeRestante <= 0) break;
+    if (operacao === 'ENTRADA') {
+      // Adiciona no tanque com mais espaço disponível
+      const tanque = tanques.reduce((melhor, atual) => {
+        const espacoMelhor = melhor.capacidadeTotal - melhor.volumeAtual;
+        const espacoAtual = atual.capacidadeTotal - atual.volumeAtual;
+        return espacoAtual > espacoMelhor ? atual : melhor;
+      });
       
       const espacoDisponivel = tanque.capacidadeTotal - tanque.volumeAtual;
-      const quantidadeAdicionar = Math.min(espacoDisponivel, quantidadeRestante);
+      const quantidadeAdicionar = Math.min(quantidade, espacoDisponivel);
+      tanque.volumeAtual += quantidadeAdicionar;
       
-      if (quantidadeAdicionar > 0) {
-        tanque.volumeAtual += quantidadeAdicionar;
-        quantidadeRestante -= quantidadeAdicionar;
-        
-        movimentacoes.push({
-          idTanque: tanque.id,
-          quantidade: quantidadeAdicionar,
-          volumeFinal: tanque.volumeAtual
-        });
-      }
+      return {
+        sucesso: true,
+        processado: quantidadeAdicionar,
+        restante: quantidade - quantidadeAdicionar
+      };
     }
-
-    return {
-      sucesso: quantidadeRestante === 0,
-      movimentacoes,
-      quantidadeProcessada: quantidade - quantidadeRestante,
-      quantidadeRestante
-    };
-  }
-
-  processarSaida(tanques, quantidade) {
-    // Remove do tanque com mais volume disponível
-    const tanquesOrdenados = [...tanques].sort((a, b) => b.volumeAtual - a.volumeAtual);
     
-    let quantidadeRestante = quantidade;
-    const movimentacoes = [];
-
-    for (const tanque of tanquesOrdenados) {
-      if (quantidadeRestante <= 0) break;
-      
-      const quantidadeRemover = Math.min(tanque.volumeAtual, quantidadeRestante);
-      
-      if (quantidadeRemover > 0) {
-        tanque.volumeAtual -= quantidadeRemover;
-        quantidadeRestante -= quantidadeRemover;
-        
-        movimentacoes.push({
-          idTanque: tanque.id,
-          quantidade: quantidadeRemover,
-          volumeFinal: tanque.volumeAtual
-        });
-      }
-    }
-
-    return {
-      sucesso: quantidadeRestante === 0,
-      movimentacoes,
-      quantidadeProcessada: quantidade - quantidadeRestante,
-      quantidadeRestante
-    };
-  }
-
-  /**
-   * Calcula ponto de reposição para combustível
-   */
-  calcularPontoReposicao(dados) {
-    const { consumoMedioDiario, tempoReposicaoDias, tanques } = dados;
-    
-    // Ponto de reposição = (Consumo médio diário × Tempo de reposição) + Estoque de segurança
-    const consumoDuranteReposicao = consumoMedioDiario * tempoReposicaoDias;
-    const estoqueSeguranca = consumoMedioDiario * 3; // 3 dias de segurança
-    const pontoReposicao = consumoDuranteReposicao + estoqueSeguranca;
-    
-    // Calcula capacidade total
-    const capacidadeTotal = tanques.reduce((total, t) => total + t.capacidadeTotal, 0);
-    
-    // Quantidade ideal de pedido (60% da capacidade total)
-    const quantidadePedido = capacidadeTotal * 0.6;
-
-    return {
-      pontoReposicao,
-      quantidadePedido,
-      estoqueSeguranca,
-      consumoMedioDiario,
-      diasAutonomia: this.calcularDiasAutonomia(dados),
-      percentualReposicao: (pontoReposicao / capacidadeTotal * 100).toFixed(2)
-    };
-  }
-
-  calcularDiasAutonomia(dados) {
-    const estoque = this.calcularEstoqueDisponivel(dados);
-    return Math.floor(estoque.volumeUtil / dados.consumoMedioDiario);
-  }
-
-  /**
-   * Gera alertas específicos para combustível
-   */
-  gerarAlertas(dados) {
-    const alertas = [];
-    const estoque = this.calcularEstoqueDisponivel(dados);
-    const pontoReposicao = this.calcularPontoReposicao(dados);
-
-    // Alerta de estoque baixo
-    if (estoque.volumeUtil <= pontoReposicao.pontoReposicao) {
-      alertas.push({
-        tipo: 'CRITICO',
-        mensagem: `Estoque abaixo do ponto de reposição. Solicitar ${pontoReposicao.quantidadePedido.toFixed(0)}L`,
-        acao: 'GERAR_PEDIDO_COMPRA'
+    if (operacao === 'SAIDA') {
+      // Remove do tanque com mais volume
+      const tanque = tanques.reduce((melhor, atual) => {
+        return atual.volumeAtual > melhor.volumeAtual ? atual : melhor;
       });
-    }
-
-    // Alerta por tanque
-    dados.tanques.forEach(tanque => {
-      const percentual = (tanque.volumeAtual / tanque.capacidadeTotal) * 100;
       
-      if (percentual < 10) {
-        alertas.push({
-          tipo: 'CRITICO',
-          mensagem: `Tanque ${tanque.id} com apenas ${percentual.toFixed(1)}% de capacidade`,
-          acao: 'VERIFICAR_TANQUE'
-        });
-      } else if (percentual < 25) {
-        alertas.push({
-          tipo: 'AVISO',
-          mensagem: `Tanque ${tanque.id} com ${percentual.toFixed(1)}% de capacidade`,
-          acao: 'MONITORAR'
-        });
+      if (tanque.volumeAtual >= quantidade) {
+        tanque.volumeAtual -= quantidade;
+        return {
+          sucesso: true,
+          processado: quantidade,
+          restante: 0
+        };
       }
-    });
-
-    // Alerta de autonomia
-    const diasAutonomia = pontoReposicao.diasAutonomia;
-    if (diasAutonomia <= 2) {
-      alertas.push({
-        tipo: 'URGENTE',
-        mensagem: `Estoque suficiente para apenas ${diasAutonomia} dias`,
-        acao: 'PEDIDO_EMERGENCIAL'
-      });
+      
+      return {
+        sucesso: false,
+        mensagem: "Volume insuficiente no tanque"
+      };
     }
-
-    return alertas;
   }
 }
 
 /**
- * Estratégia concreta para controle de produtos por unidade
+ * Estratégia para controle de produtos por unidade
  */
 class EstoqueProdutoStrategy extends EstoqueStrategy {
   
-  /**
-   * Calcula estoque de produtos em unidades
-   */
-  calcularEstoqueDisponivel(dados) {
-    const { produtos, estoques } = dados;
+  calcularEstoque(dados) {
+    const { produtos } = dados;
     
-    if (!produtos || produtos.length === 0) {
-      return { quantidadeTotal: 0, produtos: [] };
-    }
-
-    const estoquePorProduto = produtos.map(produto => {
-      const estoquesProduto = estoques.filter(e => e.idProduto === produto.id);
-      const quantidadeTotal = estoquesProduto.reduce((total, e) => total + e.quantidade, 0);
-      
-      return {
-        idProduto: produto.id,
-        descricao: produto.descricao,
-        quantidade: quantidadeTotal,
-        unidade: produto.unidadeMedida || 'UN',
-        valorEstoque: quantidadeTotal * produto.precoVenda,
-        categoria: produto.categoria,
-        localizacoes: estoquesProduto.map(e => ({
-          idEstoque: e.idEstoque,
-          quantidade: e.quantidade
-        }))
-      };
-    });
-
-    const totais = estoquePorProduto.reduce((acc, prod) => ({
-      quantidade: acc.quantidade + prod.quantidade,
-      valor: acc.valor + prod.valorEstoque
-    }), { quantidade: 0, valor: 0 });
-
+    const quantidadeTotal = produtos.reduce((total, produto) => {
+      return total + produto.quantidade;
+    }, 0);
+    
     return {
-      quantidadeTotal: totais.quantidade,
-      valorTotal: totais.valor,
-      produtos: estoquePorProduto,
-      numeroSKUs: produtos.length
+      total: quantidadeTotal,
+      disponivel: quantidadeTotal,
+      unidade: 'UN',
+      produtos: produtos.length
     };
   }
-
-  /**
-   * Verifica disponibilidade de produtos
-   */
+  
   verificarDisponibilidade(dados, quantidadeSolicitada) {
-    const { idProduto, quantidade } = quantidadeSolicitada;
-    const estoque = this.calcularEstoqueDisponivel(dados);
-    const produtoEstoque = estoque.produtos.find(p => p.idProduto === idProduto);
+    const { produtos, idProduto } = dados;
+    const produto = produtos.find(p => p.id === idProduto);
     
-    if (!produtoEstoque) {
+    if (!produto) {
       return {
-        disponivel: false,
-        mensagem: 'Produto não encontrado no estoque'
+        temEstoque: false,
+        disponivel: 0,
+        solicitado: quantidadeSolicitada,
+        mensagem: "Produto não encontrado"
       };
     }
-
-    const disponivel = produtoEstoque.quantidade >= quantidade;
     
     return {
-      disponivel,
-      quantidadeDisponivel: produtoEstoque.quantidade,
-      quantidadeSolicitada: quantidade,
-      localizacoes: produtoEstoque.localizacoes,
-      sugestaoAlternativa: !disponivel ? this.sugerirAlternativa(dados, idProduto) : null,
-      mensagem: disponivel 
-        ? `Disponível: ${produtoEstoque.quantidade} ${produtoEstoque.unidade}` 
-        : `Insuficiente: apenas ${produtoEstoque.quantidade} ${produtoEstoque.unidade} disponíveis`
+      temEstoque: produto.quantidade >= quantidadeSolicitada,
+      disponivel: produto.quantidade,
+      solicitado: quantidadeSolicitada,
+      unidade: produto.unidade || 'UN'
     };
   }
-
-  sugerirAlternativa(dados, idProduto) {
-    // Sugere produtos similares com estoque disponível
-    const produto = dados.produtos.find(p => p.id === idProduto);
-    if (!produto) return null;
-
-    const similares = dados.produtos.filter(p => 
-      p.categoria === produto.categoria && 
-      p.id !== idProduto
-    );
-
-    return similares.map(p => ({
-      id: p.id,
-      descricao: p.descricao,
-      quantidadeDisponivel: dados.estoques
-        .filter(e => e.idProduto === p.id)
-        .reduce((total, e) => total + e.quantidade, 0)
-    })).filter(p => p.quantidadeDisponivel > 0);
-  }
-
-  /**
-   * Atualiza estoque de produtos
-   */
-  atualizarEstoque(dados, movimentacao, tipo) {
-    const { idProduto, quantidade, idEstoque } = movimentacao;
-    const estoqueItem = dados.estoques.find(e => 
-      e.idProduto === idProduto && e.idEstoque === idEstoque
-    );
-
-    if (!estoqueItem) {
-      if (tipo === 'ENTRADA') {
-        // Cria novo registro de estoque
-        dados.estoques.push({
-          idProduto,
-          idEstoque,
-          quantidade
-        });
-        return { sucesso: true, mensagem: 'Novo estoque criado' };
-      }
-      return { sucesso: false, mensagem: 'Estoque não encontrado' };
+  
+  atualizarEstoque(dados, quantidade, operacao) {
+    const { produtos, idProduto } = dados;
+    const produto = produtos.find(p => p.id === idProduto);
+    
+    if (!produto) {
+      return {
+        sucesso: false,
+        mensagem: "Produto não encontrado"
+      };
     }
-
-    if (tipo === 'ENTRADA') {
-      estoqueItem.quantidade += quantidade;
-    } else if (tipo === 'SAIDA') {
-      if (estoqueItem.quantidade < quantidade) {
-        return { 
-          sucesso: false, 
-          mensagem: `Estoque insuficiente. Disponível: ${estoqueItem.quantidade}` 
+    
+    if (operacao === 'ENTRADA') {
+      produto.quantidade += quantidade;
+      return {
+        sucesso: true,
+        quantidadeFinal: produto.quantidade
+      };
+    }
+    
+    if (operacao === 'SAIDA') {
+      if (produto.quantidade >= quantidade) {
+        produto.quantidade -= quantidade;
+        return {
+          sucesso: true,
+          quantidadeFinal: produto.quantidade
         };
       }
-      estoqueItem.quantidade -= quantidade;
-    } else if (tipo === 'TRANSFERENCIA') {
-      // Transferência entre estoques
-      const { idEstoqueDestino } = movimentacao;
       
-      if (estoqueItem.quantidade < quantidade) {
-        return { sucesso: false, mensagem: 'Quantidade insuficiente para transferência' };
-      }
-      
-      estoqueItem.quantidade -= quantidade;
-      
-      // Adiciona ao destino
-      const estoqueDestino = dados.estoques.find(e => 
-        e.idProduto === idProduto && e.idEstoque === idEstoqueDestino
-      );
-      
-      if (estoqueDestino) {
-        estoqueDestino.quantidade += quantidade;
-      } else {
-        dados.estoques.push({
-          idProduto,
-          idEstoque: idEstoqueDestino,
-          quantidade
-        });
-      }
-    } else if (tipo === 'INVENTARIO') {
-      // Ajuste de inventário
-      const diferenca = quantidade - estoqueItem.quantidade;
-      estoqueItem.quantidade = quantidade;
-      return { sucesso: true, mensagem: `Inventário ajustado em ${diferenca}` };
-    } else {
-      return { sucesso: false, mensagem: 'Tipo de movimentação inválido' };
-    }}}
+      return {
+        sucesso: false,
+        mensagem: "Quantidade insuficiente em estoque"
+      };
+    }
+  }
+}
+
+/**
+ * Context - Classe que usa as estratégias
+ */
+class GerenciadorEstoque {
+  constructor(strategy) {
+    this.strategy = strategy;
+  }
+  
+  definirEstrategia(strategy) {
+    this.strategy = strategy;
+  }
+  
+  calcularEstoque(dados) {
+    return this.strategy.calcularEstoque(dados);
+  }
+  
+  verificarDisponibilidade(dados, quantidade) {
+    return this.strategy.verificarDisponibilidade(dados, quantidade);
+  }
+  
+  atualizarEstoque(dados, quantidade, operacao) {
+    return this.strategy.atualizarEstoque(dados, quantidade, operacao);
+  }
+}
+
+// Exemplo de uso
+console.log('=== TESTE COMBUSTÍVEL ===');
+
+const dadosCombustivel = {
+  tanques: [
+    { id: 1, capacidadeTotal: 10000, volumeAtual: 8000 },
+    { id: 2, capacidadeTotal: 15000, volumeAtual: 5000 }
+  ]
+};
+
+const gerenciadorCombustivel = new GerenciadorEstoque(new EstoqueCombustivelStrategy());
+
+console.log('Estoque atual:', gerenciadorCombustivel.calcularEstoque(dadosCombustivel));
+console.log('Disponibilidade para 2000L:', gerenciadorCombustivel.verificarDisponibilidade(dadosCombustivel, 2000));
+console.log('Saída de 1000L:', gerenciadorCombustivel.atualizarEstoque(dadosCombustivel, 1000, 'SAIDA'));
+
+console.log('\n=== TESTE PRODUTOS ===');
+
+const dadosProdutos = {
+  produtos: [
+    { id: 1, nome: 'Óleo Motor', quantidade: 50, unidade: 'UN' },
+    { id: 2, nome: 'Filtro Ar', quantidade: 20, unidade: 'UN' }
+  ],
+  idProduto: 1
+};
+
+const gerenciadorProdutos = new GerenciadorEstoque(new EstoqueProdutoStrategy());
+
+console.log('Estoque atual:', gerenciadorProdutos.calcularEstoque(dadosProdutos));
+console.log('Disponibilidade para 10 unidades:', gerenciadorProdutos.verificarDisponibilidade(dadosProdutos, 10));
+console.log('Entrada de 25 unidades:', gerenciadorProdutos.atualizarEstoque(dadosProdutos, 25, 'ENTRADA'));
+
+// Exportar para uso em módulos
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    EstoqueStrategy,
+    EstoqueCombustivelStrategy,
+    EstoqueProdutoStrategy,
+    GerenciadorEstoque
+  };
+}
