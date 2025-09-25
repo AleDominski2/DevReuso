@@ -1,6 +1,4 @@
-/**
- * Context - Classe que usa as estratégias de estoque
- */
+
 class GerenciadorEstoque {
   constructor(strategy) {
     this.strategy = strategy;
