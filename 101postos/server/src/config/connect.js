@@ -1,8 +1,10 @@
-const { Sequelize } = require("sequelize");
-require("dotenv").config();
+import { Sequelize } from "sequelize";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME || "cadastro_simples",
+  process.env.DB_NAME || "101postos",
   process.env.DB_USER || "root",
   process.env.DB_PASS || "",
   {
@@ -12,13 +14,13 @@ const sequelize = new Sequelize(
   }
 );
 
-async function connectDB() {
+export async function connectDB() {
   try {
     await sequelize.authenticate();
-    console.log("Conectado ao MySQL com Sequelize!");
+    console.log("✅ Conectado ao MySQL com Sequelize!");
   } catch (error) {
-    console.error("Erro ao conectar ao MySQL com Sequelize:", error);
+    console.error("❌ Erro ao conectar ao MySQL com Sequelize:", error);
   }
 }
 
-module.exports = connectDB;
+export { sequelize };

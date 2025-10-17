@@ -1,18 +1,33 @@
 import { useState } from "react";
+import { loginUser } from "../../api/api";
 import logo from "../../assets/logo.png";
 import styles from "./Login.module.css";
 
 export default function LoginForm() {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login enviado:", form);
-    // Aqui você faria a chamada à API
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await loginUser(form);
+      console.log("Login bem-sucedido:", data);
+      // localStorage.setItem("token", data.token);
+      // window.location.href = "/dashboard";
+    } catch (err) {
+      console.error(err);
+      setError("Email ou senha incorretos!");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
