@@ -1,14 +1,23 @@
-import axios from "axios";
+// // frontend/api.js
+// import axios from "axios";
 
-// Cria uma instância configurada do Axios
-const api = axios.create({
-  baseURL: "http://localhost:5000/api", // URL base do seu back-end
-});
+// const api = axios.create({
+//   baseURL: "http://localhost:5000/api", // ok
+// });
 
-// Exemplo de função de login
-export async function loginUser(credentials) {
-  const response = await api.post("/login", credentials);
-  return response.data;
+export async function loginUser({ email, password }) {
+  const response = await fetch("http://localhost:5000/api/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, senha: password }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Erro no login");
+  }
+
+  return response.json();
 }
 
-export default api;
+// export default api;

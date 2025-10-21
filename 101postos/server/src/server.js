@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { connectDB } from "./config/connect.js";
-import proprietarioRoutes from "./routes/proprietarioRoutes.js";
+import proprietarioRoutes from "./routes/index.js";
 
 const app = express();
 app.use(cors());
