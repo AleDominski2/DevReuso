@@ -2,7 +2,11 @@
   --primary-color: #fb2a2a; /* cor principal do posto (customizável) */
   --secondary-color: #d80202;
   --background-color: #f5f6fa;
+  --default-blue:#0055c5;
+  --default-green:rgb(35, 187, 86);
   --text-color: #333;
+  --default-white:#ffff;
+  --default-gray:#6b7280;
   --border-radius: 12px;
   --transition: 0.3s ease;
 }

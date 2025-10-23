@@ -22,7 +22,7 @@ const Estabelecimento = sequelize.define(
 
     cnpj: { 
       type: DataTypes.CHAR(14), 
-      unique: true, 
+      // unique: true, 
       allowNull: true 
     },
 

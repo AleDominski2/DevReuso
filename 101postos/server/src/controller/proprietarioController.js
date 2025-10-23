@@ -1,5 +1,9 @@
 // routes/proprietarioroutes.js
 import Proprietario from "../models/Proprietario.js";
+import jwt from 'jsonwebtoken';
+import dotenv from "dotenv";
+
+dotenv.config();
 
 /* ------------------------------
    CREATE - novo proprietario
@@ -46,6 +50,9 @@ export async function create(req, res) {
 /* ------------------------------
    LOGIN
 ------------------------------ */
+const SECRET_KEY = process.env.JWT_SECRET; // Chave secreta para assinar o token
+
+console.log("SECRET_KEY:", SECRET_KEY);
 export async function login(req, res) {
   console.log("POST /api/login body:", req.body);
   const { email, senha } = req.body ?? {};
@@ -68,7 +75,21 @@ export async function login(req, res) {
 
     const safeUser = { ...user.toJSON() };
     delete safeUser.senha;
-    res.json({ message: "Login bem-sucedido!", user: safeUser });
+
+    // Gerar token JWT
+    const token = jwt.sign(
+      { id: safeUser.id_proprietario, email: safeUser.email }, // payload
+      SECRET_KEY, // chave secreta
+      { expiresIn: '1h' } // expira em 1 hora
+    );
+
+    // Enviar token junto com a resposta
+    res.json({
+      message: "Login bem-sucedido!",
+      user: safeUser,
+      token: token
+    });
+
   } catch (error) {
     console.error("Erro na rota /login:", error);
     return res.status(500).json({ error: "Erro interno no servidor", message: error.message });
@@ -101,7 +122,12 @@ export async function getById(req, res) {
     if (!proprietario) {
       return res.status(404).json({ error: "Proprietario não encontrado" });
     }
-    res.json(proprietario);
+    
+    res.json({
+      id: proprietario.id_proprietario,
+      nome: proprietario.nome,
+      email: proprietario.email
+    });
   } catch (error) {
     console.error("Erro ao buscar proprietario:", error);
     res.status(500).json({ error: "Erro ao buscar proprietario" });
