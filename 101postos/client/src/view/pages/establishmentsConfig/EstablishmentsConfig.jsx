@@ -8,7 +8,7 @@ import {
   createEstabelecimento,
   updateEstabelecimento,
   deleteEstabelecimento,
-} from "@/api/estabelecimentosApi";
+} from "@/api/establishmentsApi";
 
 import decoder from "@/context/token/decoder";
 
